@@ -3,6 +3,7 @@ package nagp.directservice.orders.service;
 import java.util.List;
 import java.util.Optional;
 
+import nagp.directservice.orders.exceptions.OrderNotFoundException;
 import nagp.directservice.orders.models.Order;
 
 public interface IOrderService {
@@ -23,5 +24,7 @@ public interface IOrderService {
 
 	Order addOrder(String requestId, String sellerId, String consumerId, String address, double amount,
 			String description, String service);
+
+	String cancelOrder(String requestId) throws OrderNotFoundException;
 
 }

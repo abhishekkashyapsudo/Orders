@@ -54,7 +54,13 @@ public class OrderDao implements IOrderDao{
 	}
 
 	private static Order randomOrder(int i) {
-		return new Order("S1000000"+i,"New Address "+i , random.nextInt(10000)+5, "Random description "+i, "GROOMING", "C1000000"+i, "SR1000000"+i);
+		return new Order("S1000000"+i,"New Address "+i , random.nextInt(10000)+5, "Random description "+i, "MAKE_UP", "C1000000"+i, "SR1000000"+i);
+	}
+
+	@Override
+	public void deleteOrder(String orderId) {
+		orders.removeIf(o -> orderId.trim().equalsIgnoreCase(o.getOrderId()));
+		
 	}
 
 

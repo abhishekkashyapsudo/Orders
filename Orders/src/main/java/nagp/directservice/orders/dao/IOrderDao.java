@@ -16,4 +16,6 @@ public interface IOrderDao {
 
 	void addOrder(Order order);
 
+	void deleteOrder(String orderId);
+
 }

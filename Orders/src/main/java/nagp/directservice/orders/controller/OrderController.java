@@ -87,6 +87,13 @@ public class OrderController {
 		}
 		throw new OrderNotFoundException(requestId);
 	}
+	
+	@GetMapping(value = "/cancelOrder/{orderId}")
+	String cancelOrder(@PathVariable(name = "orderId") String requestId) throws OrderNotFoundException {
+		logger.info("Working from port " + port + " of Requests service");
+		return orderService.cancelOrder(requestId);
+		
+	}
 
 	@PostMapping
 	Order addRequest(@RequestParam String sellerId, @RequestParam String address, 

@@ -6,18 +6,32 @@ import java.util.Optional;
 
 import javax.annotation.Resource;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 
 import nagp.directservice.orders.dao.IOrderDao;
+import nagp.directservice.orders.exceptions.OrderNotFoundException;
 import nagp.directservice.orders.models.Order;
 import nagp.directservice.orders.service.IOrderService;
+
 
 @Service
 public class OrderService implements IOrderService {
 
+	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(OrderService.class);
+
 	@Resource
 	IOrderDao orderDao;
 
+	@Autowired
+	LoadBalancerClient loadBalancerClient;
 
 	@Override
 	public Optional<Order> getOrder(String orderId) {
@@ -62,13 +76,56 @@ public class OrderService implements IOrderService {
 		}
 		return order;
 	}
-
+	
 	@Override
 	public Order addOrder(String requestId, String sellerId, String consumerId, String address, double amount,
 			String description, String service) {
 		Order order = new Order(sellerId, address, amount, description, service, consumerId, requestId);
 		orderDao.addOrder(order);
 		return order;
+	}
+
+	@Override
+	public String cancelOrder(String requestId) throws OrderNotFoundException {
+		Optional<Order> order = getOrder(requestId);
+		if(order.isPresent()) {
+			return cancelOrder(order.get());
+		}
+		else {
+			throw new OrderNotFoundException(requestId);
+		}
+	}
+	
+	@HystrixCommand(fallbackMethod = "cancelOrderFallback")
+	private String cancelOrder(Order order) {
+		String baseUrl = loadBalancerClient.choose("requests").getUri().toString() + "/requests/cancelOrder";
+		RestTemplate restTemplate = new RestTemplate();
+		ResponseEntity<String> response = null;
+		try {
+			UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl)
+					.queryParam("sellerId", order.getSellerId())
+					.queryParam("address", order.getAddress())
+					.queryParam("amount", order.getAmount())
+					.queryParam("description", order.getDescription())
+					.queryParam("service", order.getService())
+					.queryParam("consumerId", order.getConsumerId())
+					.queryParam("requestId", order.getOrderId());
+
+			response = restTemplate.exchange(builder.buildAndExpand().toUri(), HttpMethod.POST, null,
+					String.class);
+		} catch (Exception ex) {
+			logger.warn(ex.getMessage(), ex);
+		}
+		orderDao.deleteOrder(order.getOrderId());
+		return "Order successfully deleted and added to the requests database.";
+	}
+	
+	public String cancelOrderFallback( Order order) {  
+		logger.warn("Requests Service is down!!! fallback route enabled...");
+			
+		return  "CIRCUIT BREAKER ENABLED!!! No Response From Requests Service at this moment. " +
+		" Service will be back shortly - ";
+
 	}
 
 
