@@ -27,6 +27,9 @@ public class OrderService implements IOrderService {
 
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(OrderService.class);
 
+	@Resource(name = "restTemplate")
+	private RestTemplate restTemplate;
+	
 	@Resource
 	IOrderDao orderDao;
 
@@ -99,7 +102,6 @@ public class OrderService implements IOrderService {
 	@HystrixCommand(fallbackMethod = "cancelOrderFallback")
 	private String cancelOrder(Order order) {
 		String baseUrl = loadBalancerClient.choose("requests").getUri().toString() + "/requests/cancelOrder";
-		RestTemplate restTemplate = new RestTemplate();
 		ResponseEntity<String> response = null;
 		try {
 			UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl)
