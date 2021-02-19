@@ -9,7 +9,6 @@ import javax.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -102,7 +101,6 @@ public class OrderService implements IOrderService {
 	@HystrixCommand(fallbackMethod = "cancelOrderFallback")
 	private String cancelOrder(Order order) {
 		String baseUrl = loadBalancerClient.choose("requests").getUri().toString() + "/requests/cancelOrder";
-		ResponseEntity<String> response = null;
 		try {
 			UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl)
 					.queryParam("sellerId", order.getSellerId())
@@ -113,7 +111,7 @@ public class OrderService implements IOrderService {
 					.queryParam("consumerId", order.getConsumerId())
 					.queryParam("requestId", order.getOrderId());
 
-			response = restTemplate.exchange(builder.buildAndExpand().toUri(), HttpMethod.POST, null,
+			restTemplate.exchange(builder.buildAndExpand().toUri(), HttpMethod.POST, null,
 					String.class);
 		} catch (Exception ex) {
 			logger.warn(ex.getMessage(), ex);
