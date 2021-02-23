@@ -91,7 +91,10 @@ public class OrderController {
 	@GetMapping(value = "/cancelOrder/{orderId}")
 	String cancelOrder(@PathVariable(name = "orderId") String requestId) throws OrderNotFoundException {
 		logger.info("Working from port " + port + " of Requests service");
-		return orderService.cancelOrder(requestId);
+		if(orderService.getOrder(requestId).isPresent())
+			return orderService.cancelOrder(requestId);
+		else
+			throw new OrderNotFoundException(requestId);
 		
 	}
 

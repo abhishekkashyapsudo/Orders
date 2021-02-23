@@ -16,7 +16,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 
 import nagp.directservice.orders.dao.IOrderDao;
-import nagp.directservice.orders.exceptions.OrderNotFoundException;
 import nagp.directservice.orders.models.Order;
 import nagp.directservice.orders.service.IOrderService;
 
@@ -88,19 +87,10 @@ public class OrderService implements IOrderService {
 	}
 
 	@Override
-	public String cancelOrder(String requestId) throws OrderNotFoundException {
-		Optional<Order> order = getOrder(requestId);
-		if(order.isPresent()) {
-			return cancelOrder(order.get());
-		}
-		else {
-			throw new OrderNotFoundException(requestId);
-		}
-	}
-	
 	@HystrixCommand(fallbackMethod = "cancelOrderFallback")
-	private String cancelOrder(Order order) {
+	public String cancelOrder(String requestId){
 		String baseUrl = loadBalancerClient.choose("requests").getUri().toString() + "/requests/cancelOrder";
+		Order order = getOrder(requestId).get();
 		try {
 			UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl)
 					.queryParam("sellerId", order.getSellerId())
@@ -120,7 +110,10 @@ public class OrderService implements IOrderService {
 		return "Order successfully deleted and added to the requests database.";
 	}
 	
-	public String cancelOrderFallback( Order order) {  
+	
+	
+	
+	public String cancelOrderFallback( String orderid) {  
 		logger.warn("Requests Service is down!!! fallback route enabled...");
 			
 		return  "CIRCUIT BREAKER ENABLED!!! No Response From Requests Service at this moment. " +
